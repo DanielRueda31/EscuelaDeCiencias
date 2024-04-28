@@ -1,62 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ar.js"></script>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.3/aframe/build/aframe-ar.min.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
-  <a-scene embedded arjs>
-    <a-marker preset="hiro">
-      <a-camera qr-reader></a-camera>
-    </a-marker>
-    <a-entity camera></a-entity>
-  </a-scene>
+    <a-scene embedded arjs="sourceType: webcam;">
+        <a-marker preset="hiro">
+            <a-entity camera qr-reader></a-entity>
+        </a-marker>
+        <a-entity camera></a-entity>
+    </a-scene>
 
-  <script>
-    AFRAME.registerComponent('qr-reader', {
-      init: function () {
-        const videoEl = document.createElement('video');
-        videoEl.width = 640;
-        videoEl.height = 480;
-        videoEl.autoplay = true;
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
+    <script>
+        AFRAME.registerComponent('qr-reader', {
+            init: function () {
+                const videoEl = document.createElement('video');
+                videoEl.width = 640;
+                videoEl.height = 480;
+                videoEl.autoplay = true;
+                const canvas = document.createElement('canvas');
+                const canvasContext = canvas.getContext('2d');
+                canvas.width = videoEl.width;
+                canvas.height = videoEl.height;
+                canvas.willReadFrequently = true;
 
-        const canvas = document.createElement('canvas');
-        const canvasContext = canvas.getContext('2d');
-        canvas.width = videoEl.width;
-        canvas.height = videoEl.height;
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    .then((stream) => {
+                        videoEl.srcObject = stream;
+                        videoEl.play();
+                        const qrCanvas = document.createElement('canvas');
+                        qrCanvas.width = videoEl.width;
+                        qrCanvas.height = videoEl.height;
+                        const qrCanvasContext = qrCanvas.getContext('2d');
+                        this.el.appendChild(qrCanvas);
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-          .then((stream) => {
-            videoEl.srcObject = stream;
-            videoEl.play();
-            const qrCanvas = document.createElement('canvas');
-            qrCanvas.width = 640;
-            qrCanvas.height = 480;
-            const qrCanvasContext = qrCanvas.getContext('2d');
-            this.el.appendChild(qrCanvas);
+                        const tick = () => {
+                            if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+                                canvasContext.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                                const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                                const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-            const tick = () => {
-              if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
-                canvasContext.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-                const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) {
-                  qrCanvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
-                  qrCanvasContext.drawImage(videoEl, 0, 0, qrCanvas.width, qrCanvas.height);
-                  qrCanvasContext.strokeStyle = '#FF0000';
-                  qrCanvasContext.lineWidth = 4;
-                  qrCanvasContext.strokeRect(code.location.topLeftCorner.x, code.location.topLeftCorner.y, code.location.bottomRightCorner.x - code.location.topLeftCorner.x, code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
-                  console.log('QR Code detected:', code.data);
-                }
-              }
-              requestAnimationFrame(tick);
-            };
-            tick();
-          })
-          .catch(console.error);
-      }
-    });
-  </script>
+                                if (code) {
+                                    qrCanvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
+                                    qrCanvasContext.drawImage(videoEl, 0, 0, qrCanvas.width, qrCanvas.height);
+                                    qrCanvasContext.strokeStyle = '#FF0000';
+                                    qrCanvasContext.lineWidth = 4;
+                                    qrCanvasContext.strokeRect(code.location.topLeftCorner.x, code.location.topLeftCorner.y, code.location.bottomRightCorner.x - code.location.topLeftCorner.x, code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
+                                    console.log('QR Code detected:', code.data);
+
+                                    // Obtener la parte después de "//" del contenido del código QR
+                                    const qrData = code.data.split('//').pop() || '';
+
+                                    // Reemplazar la parte "index.html" de la URL actual por la parte después de "//" del código QR
+                                    const currentUrl = window.location.href;
+                                    const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
+                                    const newUrl = `${baseUrl}/${qrData}`;
+                                    window.location.href = newUrl;
+                                }
+                            }
+                            requestAnimationFrame(tick);
+                        };
+                        tick();
+                    })
+                    .catch(console.error);
+            }
+        });
+    </script>
 </body>
 </html>
