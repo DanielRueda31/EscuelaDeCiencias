@@ -50,14 +50,15 @@
                                     qrCanvasContext.strokeRect(code.location.topLeftCorner.x, code.location.topLeftCorner.y, code.location.bottomRightCorner.x - code.location.topLeftCorner.x, code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
                                     console.log('QR Code detected:', code.data);
 
-                                    // Obtener la parte después de "//" del contenido del código QR
                                     const qrData = code.data.split('//').pop() || '';
-
-                                    // Reemplazar la parte "index.html" de la URL actual por la parte después de "//" del código QR
                                     const currentUrl = window.location.href;
                                     const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
                                     const newUrl = `${baseUrl}/${qrData}`;
                                     window.location.href = newUrl;
+                                } else {
+                                    // Si no se detecta un código QR, dibuja la captura de la cámara en el lienzo
+                                    qrCanvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
+                                    qrCanvasContext.drawImage(videoEl, 0, 0, qrCanvas.width, qrCanvas.height);
                                 }
                             }
                             requestAnimationFrame(tick);
