@@ -3,14 +3,14 @@
 <head>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ar.js"></script>
 </head>
-<body>
-  <a-scene>
- 
-    <a-entity camera wasd-controls look-controls qr-reader></a-entity>
-
-    <a-sphere radius="1" position="0 1 -5" material="color: #FFDAB9"></a-sphere>
-
+<body style="margin: 0; overflow: hidden;">
+  <a-scene embedded arjs>
+    <a-marker preset="hiro">
+      <a-camera qr-reader></a-camera>
+    </a-marker>
+    <a-entity camera></a-entity>
   </a-scene>
 
   <script>
@@ -34,7 +34,7 @@
             qrCanvas.width = 640;
             qrCanvas.height = 480;
             const qrCanvasContext = qrCanvas.getContext('2d');
-            this.el.sceneEl.appendChild(qrCanvas);
+            this.el.appendChild(qrCanvas);
 
             const tick = () => {
               if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
