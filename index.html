@@ -2,60 +2,59 @@
 <html>
 <head>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-orbit-controls-component-2/dist/aframe-orbit-controls-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
 </head>
 <body>
   <a-scene>
-    <!-- Cámara con controles de mirada y orbitales -->
-    <a-entity camera look-controls orbit-controls="
-        target: 0 0 0;
-        minDistance: 1;
-        maxDistance: 10;
-        initialPosition: 0 0 5;
-        enableDamping: true;
-        dampingFactor: 0.25;
-        rotateSpeed: 0.1;"></a-entity>
-    
-    <!-- Componente para la detección de códigos QR -->
-    <a-entity id="qrScanner" qr-scanner></a-entity>
-    
-    <!-- Un plano para que podamos ver algo -->
-    <a-plane position="0 0 -4" rotation="-90 0 0" width="4" height="4" color="#7BC8A4"></a-plane>
+ 
+    <a-entity camera wasd-controls look-controls qr-reader></a-entity>
+
+    <a-sphere radius="1" position="0 1 -5" material="color: #FFDAB9"></a-sphere>
+
   </a-scene>
 
   <script>
-    AFRAME.registerComponent('qr-scanner', {
+    AFRAME.registerComponent('qr-reader', {
       init: function () {
-        const video = document.createElement('video');
-        const canvasElement = document.createElement('canvas');
-        const canvas = canvasElement.getContext('2d');
-        
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-          .then(function(stream) {
-            video.srcObject = stream;
-            video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
-            video.play();
-            requestAnimationFrame(tick);
-          });
+        const videoEl = document.createElement('video');
+        videoEl.width = 640;
+        videoEl.height = 480;
+        videoEl.autoplay = true;
 
-        function tick() {
-          if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            canvasElement.hidden = false;
-            canvasElement.height = video.videoHeight;
-            canvasElement.width = video.videoWidth;
-            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-            const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) {
-              console.log('QR code detected:', code.data);
-              // Aquí puedes procesar el código QR y mostrar la información asociada en la escena
-            } else {
-              console.log('No QR code detected');
-            }
-          }
-          requestAnimationFrame(tick);
-        }
+        const canvas = document.createElement('canvas');
+        const canvasContext = canvas.getContext('2d');
+        canvas.width = videoEl.width;
+        canvas.height = videoEl.height;
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+          .then((stream) => {
+            videoEl.srcObject = stream;
+            videoEl.play();
+            const qrCanvas = document.createElement('canvas');
+            qrCanvas.width = 640;
+            qrCanvas.height = 480;
+            const qrCanvasContext = qrCanvas.getContext('2d');
+            this.el.sceneEl.appendChild(qrCanvas);
+
+            const tick = () => {
+              if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+                canvasContext.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                if (code) {
+                  qrCanvasContext.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
+                  qrCanvasContext.drawImage(videoEl, 0, 0, qrCanvas.width, qrCanvas.height);
+                  qrCanvasContext.strokeStyle = '#FF0000';
+                  qrCanvasContext.lineWidth = 4;
+                  qrCanvasContext.strokeRect(code.location.topLeftCorner.x, code.location.topLeftCorner.y, code.location.bottomRightCorner.x - code.location.topLeftCorner.x, code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
+                  console.log('QR Code detected:', code.data);
+                }
+              }
+              requestAnimationFrame(tick);
+            };
+            tick();
+          })
+          .catch(console.error);
       }
     });
   </script>
