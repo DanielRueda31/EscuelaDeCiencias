@@ -8,8 +8,11 @@
     <a-scene embedded arjs="sourceType: webcam;">
         <a-marker preset="hiro">
             <a-entity camera qr-reader></a-entity>
+            <a-box color="red" position="0 0.5 0"></a-box>
+
         </a-marker>
         <a-entity camera></a-entity>
+        
     </a-scene>
 
     <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
